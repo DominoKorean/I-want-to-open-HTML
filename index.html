@@ -5,47 +5,130 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Open HTML</title>
   <style>
-    :root { --bg:#0f1115; --fg:#e5e7eb; --muted:#94a3b8; --accent:#60a5fa; }
+    /* Modern, minimal, no dashed borders. Glass card + gradient glow. */
+    :root{
+      --bg-1:#0b0f1a;
+      --bg-2:#0f1324;
+      --fg:#e7e9ee;
+      --muted:#a8b0bc;
+      --card:#111827cc; /* glass card with alpha */
+      --ring:#6aa4ff;
+      --ring-2:#b794ff;
+    }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--fg);
-      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    body{
+      margin:0;
+      color:var(--fg);
+      background:
+        radial-gradient(1200px 800px at 10% 10%, #1f2a44 0%, transparent 60%),
+        radial-gradient(1200px 800px at 90% 20%, #2a1f44 0%, transparent 65%),
+        radial-gradient(1000px 700px at 50% 90%, #1f4440 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+      font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Full-screen drop/click zone */
-    #drop {
-      position: fixed; inset: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .75rem;
-      border: 2px dashed #334155; border-radius: 12px; margin: 16px;
-      transition: border-color .2s, background .2s;
-      cursor: pointer; user-select: none; text-align: center;
+    /* Fullscreen interactive layer (click/drag anywhere) */
+    #stage{
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; user-select:none;
     }
-    #drop.drag { background:#0b1220; border-color: var(--accent); }
-    h1 { margin: 0; font-weight: 700; font-size: clamp(24px, 5vw, 48px); }
-    p { margin: 0; color: var(--muted); }
 
-    /* Hidden file input */
-    #picker { display: none; }
+    /* Center glass card */
+    .hero{
+      position:relative;
+      display:flex; flex-direction:column; align-items:center; gap:.75rem;
+      padding: clamp(20px, 5vw, 40px) clamp(24px, 6vw, 56px);
+      background: var(--card);
+      border-radius: 16px;
+      backdrop-filter: blur(8px) saturate(1.1);
+      -webkit-backdrop-filter: blur(8px) saturate(1.1);
+      box-shadow:
+        0 20px 60px rgba(0,0,0,.35),
+        inset 0 1px 0 rgba(255,255,255,.05);
+      transform: translateZ(0);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    /* Animated glow ring behind card (no borders!) */
+    .hero::before{
+      content:"";
+      position:absolute; inset:-2px;
+      border-radius: inherit;
+      background: conic-gradient(from 0deg, var(--ring), var(--ring-2), var(--ring));
+      filter: blur(22px) saturate(1.4);
+      opacity:.55;
+      z-index:-1;
+      animation: spin 14s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(1turn); } }
 
-    /* Iframe that will run the uploaded HTML */
-    #viewer {
-      position: fixed; inset: 0; width: 100%; height: 100%;
-      border: 0; display: none; background: #fff;
+    #stage.drag .hero { transform: scale(1.02); }
+    #stage.drag .hero::before { opacity:.9; filter: blur(26px) saturate(1.6); }
+
+    h1{
+      margin:0;
+      font-weight:800;
+      letter-spacing:.2px;
+      font-size: clamp(28px, 6vw, 56px);
+    }
+    p{ margin:0; color:var(--muted); font-size: clamp(13px, 2.5vw, 16px); }
+
+    /* Icon */
+    .icon{
+      width: clamp(40px, 8vw, 64px);
+      height: clamp(40px, 8vw, 64px);
+      opacity:.95;
+    }
+
+    /* Hidden native input */
+    #picker{ display:none; }
+
+    /* Viewer becomes the app once loaded */
+    #viewer{
+      position:fixed; inset:0; border:0; width:100%; height:100%;
+      display:none; background:#fff;
+    }
+
+    /* Small helper on mobile to hint "tap anywhere" */
+    .hint{
+      margin-top:.25rem;
+      font-size: .875rem;
+      opacity:.8;
+    }
+
+    /* Respect light mode (still modern) */
+    @media (prefers-color-scheme: light){
+      :root{ --fg:#0b1020; --muted:#4b5563; --card:#ffffffcc; }
+      body{
+        background:
+          radial-gradient(1200px 800px at 10% 10%, #dfe7ff 0%, transparent 55%),
+          radial-gradient(1200px 800px at 90% 20%, #f0dfff 0%, transparent 60%),
+          radial-gradient(1000px 700px at 50% 90%, #cffaf2 0%, transparent 60%),
+          linear-gradient(180deg, #f7faff, #f1f5ff);
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Hidden native file input -->
+  <!-- Hidden file input -->
   <input id="picker" type="file" accept=".html,text/html" />
 
-  <!-- Centered minimal UI -->
-  <div id="drop" aria-label="Drop zone" tabindex="0">
-    <h1>Open HTML</h1>
-    <p>Click anywhere or drag & drop an .html file</p>
-  </div>
+  <!-- Fullscreen stage (click or drop anywhere) -->
+  <main id="stage" aria-label="Drop zone" tabindex="0">
+    <div class="hero" role="button" aria-label="Open HTML">
+      <!-- Inline SVG icon (no external assets) -->
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M12 16a1 1 0 0 1-1-1V7.41L8.7 9.7a1 1 0 1 1-1.4-1.4l4-4a1 1 0 0 1 1.4 0l4 4a1 1 0 1 1-1.4 1.4L13 7.41V15a1 1 0 0 1-1 1Z"/>
+        <path fill="currentColor" d="M5 14a1 1 0 0 1 1 1v3h12v-3a1 1 0 1 1 2 0v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a1 1 0 0 1 1-1Z" opacity=".8"/>
+      </svg>
+      <h1>Open HTML</h1>
+      <p>Click anywhere or drag & drop an .html file</p>
+      <div class="hint">Your file runs locally in a sandboxed iframe.</div>
+    </div>
+  </main>
 
   <!-- Sandboxed iframe that executes the uploaded HTML -->
   <iframe
@@ -57,68 +140,64 @@
   <script>
     // All text & comments are in English.
 
-    // Load a File object into the iframe via a Blob URL
-    async function loadIntoIframe(file) {
-      if (!file) return;
-
-      const name = (file.name || '').toLowerCase();
-      const looksHtml =
-        (file.type || '').includes('html') ||
-        name.endsWith('.html') || name.endsWith('.htm');
-
-      if (!looksHtml) {
-        alert('Please choose an .html file.');
-        return;
-      }
-
-      const bytes = await file.arrayBuffer();
-      const blob = new Blob([bytes], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-
-      const frame = document.getElementById('viewer');
-      frame.src = url;
-      frame.style.display = 'block';
-
-      // Hide the drop zone once a file is loaded
-      document.getElementById('drop').style.display = 'none';
-
-      // Revoke the Blob URL later to free memory
-      frame.addEventListener('load', () => {
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-      }, { once: true });
-    }
-
-    const drop = document.getElementById('drop');
+    const stage  = document.getElementById('stage');
     const picker = document.getElementById('picker');
+    const frame  = document.getElementById('viewer');
 
-    // Click anywhere to open the file picker
-    drop.addEventListener('click', () => picker.click());
-    drop.addEventListener('keydown', (e) => {
+    // Open native picker on click or keyboard
+    stage.addEventListener('click', () => picker.click());
+    stage.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         picker.click();
       }
     });
-    picker.addEventListener('change', () => loadIntoIframe(picker.files[0]));
 
-    // Drag & drop support
-    ['dragenter', 'dragover'].forEach(evt => {
-      document.addEventListener(evt, (e) => {
-        e.preventDefault();
-        drop.classList.add('drag');
-      });
+    picker.addEventListener('change', () => loadIntoIframe(picker.files?.[0]));
+
+    // Drag & drop (anywhere)
+    const prevent = (e) => { e.preventDefault(); e.stopPropagation(); };
+    ['dragenter','dragover','dragleave','drop'].forEach(type => {
+      document.addEventListener(type, prevent);
     });
-    ['dragleave', 'drop'].forEach(evt => {
-      document.addEventListener(evt, (e) => {
-        if (evt !== 'drop') drop.classList.remove('drag');
-      });
+    ['dragenter','dragover'].forEach(type => {
+      document.addEventListener(type, () => stage.classList.add('drag'));
+    });
+    ['dragleave','drop'].forEach(type => {
+      document.addEventListener(type, () => stage.classList.remove('drag'));
     });
     document.addEventListener('drop', (e) => {
-      e.preventDefault();
-      drop.classList.remove('drag');
-      const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      loadIntoIframe(f);
+      const file = e.dataTransfer?.files?.[0];
+      loadIntoIframe(file);
     });
+
+    async function loadIntoIframe(file){
+      if (!file) return;
+
+      const isHtml =
+        (file.type || '').includes('html') ||
+        (file.name || '').toLowerCase().endsWith('.html') ||
+        (file.name || '').toLowerCase().endsWith('.htm');
+
+      if (!isHtml){
+        alert('Please choose an .html file.');
+        return;
+      }
+
+      const buf  = await file.arrayBuffer();
+      const blob = new Blob([buf], { type: 'text/html;charset=utf-8' });
+      const url  = URL.createObjectURL(blob);
+
+      // Show the viewer, hide the stage
+      frame.src = url;
+      frame.style.display = 'block';
+      stage.style.display = 'none';
+
+      // Revoke URL later to free memory
+      frame.addEventListener('load', () => {
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }, { once:true });
+    }
   </script>
 </body>
 </html>

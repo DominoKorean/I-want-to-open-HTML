@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Open HTML</title>
+  <style>
+    :root { --bg:#0f1115; --fg:#e5e7eb; --muted:#94a3b8; --accent:#60a5fa; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    /* Full-screen drop/click zone */
+    #drop {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .75rem;
+      border: 2px dashed #334155; border-radius: 12px; margin: 16px;
+      transition: border-color .2s, background .2s;
+      cursor: pointer; user-select: none; text-align: center;
+    }
+    #drop.drag { background:#0b1220; border-color: var(--accent); }
+    h1 { margin: 0; font-weight: 700; font-size: clamp(24px, 5vw, 48px); }
+    p { margin: 0; color: var(--muted); }
+
+    /* Hidden file input */
+    #picker { display: none; }
+
+    /* Iframe that will run the uploaded HTML */
+    #viewer {
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      border: 0; display: none; background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <!-- Hidden native file input -->
+  <input id="picker" type="file" accept=".html,text/html" />
+
+  <!-- Centered minimal UI -->
+  <div id="drop" aria-label="Drop zone" tabindex="0">
+    <h1>Open HTML</h1>
+    <p>Click anywhere or drag & drop an .html file</p>
+  </div>
+
+  <!-- Sandboxed iframe that executes the uploaded HTML -->
+  <iframe
+    id="viewer"
+    sandbox="allow-scripts allow-forms allow-modals allow-pointer-lock allow-popups allow-popups-to-escape-sandbox"
+    referrerpolicy="no-referrer">
+  </iframe>
+
+  <script>
+    // All text & comments are in English.
+
+    // Load a File object into the iframe via a Blob URL
+    async function loadIntoIframe(file) {
+      if (!file) return;
+
+      const name = (file.name || '').toLowerCase();
+      const looksHtml =
+        (file.type || '').includes('html') ||
+        name.endsWith('.html') || name.endsWith('.htm');
+
+      if (!looksHtml) {
+        alert('Please choose an .html file.');
+        return;
+      }
+
+      const bytes = await file.arrayBuffer();
+      const blob = new Blob([bytes], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const frame = document.getElementById('viewer');
+      frame.src = url;
+      frame.style.display = 'block';
+
+      // Hide the drop zone once a file is loaded
+      document.getElementById('drop').style.display = 'none';
+
+      // Revoke the Blob URL later to free memory
+      frame.addEventListener('load', () => {
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }, { once: true });
+    }
+
+    const drop = document.getElementById('drop');
+    const picker = document.getElementById('picker');
+
+    // Click anywhere to open the file picker
+    drop.addEventListener('click', () => picker.click());
+    drop.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        picker.click();
+      }
+    });
+    picker.addEventListener('change', () => loadIntoIframe(picker.files[0]));
+
+    // Drag & drop support
+    ['dragenter', 'dragover'].forEach(evt => {
+      document.addEventListener(evt, (e) => {
+        e.preventDefault();
+        drop.classList.add('drag');
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      document.addEventListener(evt, (e) => {
+        if (evt !== 'drop') drop.classList.remove('drag');
+      });
+    });
+    document.addEventListener('drop', (e) => {
+      e.preventDefault();
+      drop.classList.remove('drag');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      loadIntoIframe(f);
+    });
+  </script>
+</body>
+</html>

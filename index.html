@@ -5,15 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Open HTML</title>
   <style>
-    /* Modern, minimal, no dashed borders. Glass card + gradient glow. */
+    /* Fullscreen, modern, borderless. The entire screen is interactive. */
     :root{
-      --bg-1:#0b0f1a;
-      --bg-2:#0f1324;
-      --fg:#e7e9ee;
-      --muted:#a8b0bc;
-      --card:#111827cc; /* glass card with alpha */
-      --ring:#6aa4ff;
-      --ring-2:#b794ff;
+      --bg-a:#0b0f19;
+      --bg-b:#0f1224;
+      --fg:#e8ecf3;
+      --muted:#9aa3b2;
+      --accent-a:#79a8ff;
+      --accent-b:#b894ff;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
@@ -21,111 +20,83 @@
       margin:0;
       color:var(--fg);
       background:
-        radial-gradient(1200px 800px at 10% 10%, #1f2a44 0%, transparent 60%),
-        radial-gradient(1200px 800px at 90% 20%, #2a1f44 0%, transparent 65%),
-        radial-gradient(1000px 700px at 50% 90%, #1f4440 0%, transparent 60%),
-        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+        radial-gradient(1200px 800px at 10% 10%, #1a2844 0%, transparent 60%),
+        radial-gradient(1000px 700px at 85% 20%, #2a1f44 0%, transparent 62%),
+        radial-gradient(900px 600px at 50% 90%, #183a36 0%, transparent 58%),
+        linear-gradient(180deg, var(--bg-a), var(--bg-b));
       font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      transition: background .2s ease;
     }
 
-    /* Fullscreen interactive layer (click/drag anywhere) */
+    /* The whole screen acts as a button / drop zone */
     #stage{
-      position:fixed; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; user-select:none;
+      position: fixed; inset: 0;
+      display: grid; place-items: center;
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+    }
+    /* Keyboard focus indication without boxes */
+    #stage:focus-visible .headline{
+      text-shadow: 0 0 0.5rem rgba(255,255,255,.35);
     }
 
-    /* Center glass card */
-    .hero{
-      position:relative;
-      display:flex; flex-direction:column; align-items:center; gap:.75rem;
-      padding: clamp(20px, 5vw, 40px) clamp(24px, 6vw, 56px);
-      background: var(--card);
-      border-radius: 16px;
-      backdrop-filter: blur(8px) saturate(1.1);
-      -webkit-backdrop-filter: blur(8px) saturate(1.1);
-      box-shadow:
-        0 20px 60px rgba(0,0,0,.35),
-        inset 0 1px 0 rgba(255,255,255,.05);
-      transform: translateZ(0);
-      transition: transform .18s ease, box-shadow .18s ease;
+    /* Centered copy (no card, no borders) */
+    .center{
+      display:flex; flex-direction:column; align-items:center; gap:.6rem;
+      text-align:center; padding: 0 1.25rem;
     }
-    /* Animated glow ring behind card (no borders!) */
-    .hero::before{
-      content:"";
-      position:absolute; inset:-2px;
-      border-radius: inherit;
-      background: conic-gradient(from 0deg, var(--ring), var(--ring-2), var(--ring));
-      filter: blur(22px) saturate(1.4);
-      opacity:.55;
-      z-index:-1;
-      animation: spin 14s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(1turn); } }
-
-    #stage.drag .hero { transform: scale(1.02); }
-    #stage.drag .hero::before { opacity:.9; filter: blur(26px) saturate(1.6); }
-
-    h1{
+    .headline{
       margin:0;
-      font-weight:800;
-      letter-spacing:.2px;
-      font-size: clamp(28px, 6vw, 56px);
+      font-weight: 900;
+      letter-spacing: .2px;
+      font-size: clamp(32px, 7vw, 64px);
+      line-height: 1.06;
+      /* Gradient text for a modern feel */
+      background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
-    p{ margin:0; color:var(--muted); font-size: clamp(13px, 2.5vw, 16px); }
+    .subtitle{
+      margin:0;
+      color: var(--muted);
+      font-size: clamp(13px, 2.6vw, 16px);
+    }
+    .hint{ margin-top:.1rem; opacity:.85; font-size:.9rem; }
 
-    /* Icon */
-    .icon{
-      width: clamp(40px, 8vw, 64px);
-      height: clamp(40px, 8vw, 64px);
-      opacity:.95;
+    /* Dragging feedback: subtly intensify background & glow text */
+    body.drag .headline{ text-shadow: 0 0 1.2rem rgba(146,163,255,.55); }
+    body.drag{
+      background:
+        radial-gradient(1200px 800px at 10% 10%, #22365e 0%, transparent 60%),
+        radial-gradient(1000px 700px at 85% 20%, #3a2b61 0%, transparent 62%),
+        radial-gradient(900px 600px at 50% 90%, #20514b 0%, transparent 58%),
+        linear-gradient(180deg, var(--bg-a), var(--bg-b));
     }
 
     /* Hidden native input */
     #picker{ display:none; }
 
-    /* Viewer becomes the app once loaded */
+    /* Iframe becomes the app surface after load */
     #viewer{
-      position:fixed; inset:0; border:0; width:100%; height:100%;
+      position: fixed; inset: 0;
+      width:100%; height:100%; border:0;
       display:none; background:#fff;
-    }
-
-    /* Small helper on mobile to hint "tap anywhere" */
-    .hint{
-      margin-top:.25rem;
-      font-size: .875rem;
-      opacity:.8;
-    }
-
-    /* Respect light mode (still modern) */
-    @media (prefers-color-scheme: light){
-      :root{ --fg:#0b1020; --muted:#4b5563; --card:#ffffffcc; }
-      body{
-        background:
-          radial-gradient(1200px 800px at 10% 10%, #dfe7ff 0%, transparent 55%),
-          radial-gradient(1200px 800px at 90% 20%, #f0dfff 0%, transparent 60%),
-          radial-gradient(1000px 700px at 50% 90%, #cffaf2 0%, transparent 60%),
-          linear-gradient(180deg, #f7faff, #f1f5ff);
-      }
     }
   </style>
 </head>
 <body>
-  <!-- Hidden file input -->
+  <!-- Hidden native file input -->
   <input id="picker" type="file" accept=".html,text/html" />
 
-  <!-- Fullscreen stage (click or drop anywhere) -->
-  <main id="stage" aria-label="Drop zone" tabindex="0">
-    <div class="hero" role="button" aria-label="Open HTML">
-      <!-- Inline SVG icon (no external assets) -->
-      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor" d="M12 16a1 1 0 0 1-1-1V7.41L8.7 9.7a1 1 0 1 1-1.4-1.4l4-4a1 1 0 0 1 1.4 0l4 4a1 1 0 1 1-1.4 1.4L13 7.41V15a1 1 0 0 1-1 1Z"/>
-        <path fill="currentColor" d="M5 14a1 1 0 0 1 1 1v3h12v-3a1 1 0 1 1 2 0v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a1 1 0 0 1 1-1Z" opacity=".8"/>
-      </svg>
-      <h1>Open HTML</h1>
-      <p>Click anywhere or drag & drop an .html file</p>
+  <!-- Fullscreen interactive area (click / keyboard / drop anywhere) -->
+  <main id="stage" aria-label="Open HTML" tabindex="0">
+    <div class="center" aria-hidden="false">
+      <h1 class="headline">Open HTML</h1>
+      <p class="subtitle">Click anywhere or drag & drop an .html file</p>
       <div class="hint">Your file runs locally in a sandboxed iframe.</div>
     </div>
   </main>
@@ -138,13 +109,13 @@
   </iframe>
 
   <script>
-    // All text & comments are in English.
+    // All text & comments below are in English.
 
     const stage  = document.getElementById('stage');
     const picker = document.getElementById('picker');
     const frame  = document.getElementById('viewer');
 
-    // Open native picker on click or keyboard
+    // Open file picker on click or keyboard (Enter/Space)
     stage.addEventListener('click', () => picker.click());
     stage.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -153,31 +124,33 @@
       }
     });
 
+    // Load chosen file
     picker.addEventListener('change', () => loadIntoIframe(picker.files?.[0]));
 
-    // Drag & drop (anywhere)
+    // Global drag & drop (anywhere on the page)
     const prevent = (e) => { e.preventDefault(); e.stopPropagation(); };
     ['dragenter','dragover','dragleave','drop'].forEach(type => {
-      document.addEventListener(type, prevent);
+      document.addEventListener(type, prevent, { passive:false });
     });
     ['dragenter','dragover'].forEach(type => {
-      document.addEventListener(type, () => stage.classList.add('drag'));
+      document.addEventListener(type, () => document.body.classList.add('drag'));
     });
     ['dragleave','drop'].forEach(type => {
-      document.addEventListener(type, () => stage.classList.remove('drag'));
+      document.addEventListener(type, () => document.body.classList.remove('drag'));
     });
     document.addEventListener('drop', (e) => {
       const file = e.dataTransfer?.files?.[0];
       loadIntoIframe(file);
     });
 
+    // Read a File and run it inside the iframe using a Blob URL
     async function loadIntoIframe(file){
       if (!file) return;
 
+      const name = (file.name || '').toLowerCase();
       const isHtml =
         (file.type || '').includes('html') ||
-        (file.name || '').toLowerCase().endsWith('.html') ||
-        (file.name || '').toLowerCase().endsWith('.htm');
+        name.endsWith('.html') || name.endsWith('.htm');
 
       if (!isHtml){
         alert('Please choose an .html file.');
@@ -188,12 +161,11 @@
       const blob = new Blob([buf], { type: 'text/html;charset=utf-8' });
       const url  = URL.createObjectURL(blob);
 
-      // Show the viewer, hide the stage
+      // Show the viewer; the stage stays underneath but is hidden by the iframe
       frame.src = url;
       frame.style.display = 'block';
-      stage.style.display = 'none';
 
-      // Revoke URL later to free memory
+      // Revoke object URL later to free memory
       frame.addEventListener('load', () => {
         setTimeout(() => URL.revokeObjectURL(url), 10000);
       }, { once:true });

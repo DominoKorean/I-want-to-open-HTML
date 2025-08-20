@@ -5,100 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Open HTML</title>
   <style>
-    /* Fullscreen, modern, borderless. The entire screen is interactive. */
-    :root{
-      --bg-a:#0b0f19;
-      --bg-b:#0f1224;
-      --fg:#e8ecf3;
-      --muted:#9aa3b2;
-      --accent-a:#79a8ff;
-      --accent-b:#b894ff;
-    }
-    * { box-sizing: border-box; }
     html, body { height: 100%; }
-    body{
-      margin:0;
-      color:var(--fg);
-      background:
-        radial-gradient(1200px 800px at 10% 10%, #1a2844 0%, transparent 60%),
-        radial-gradient(1000px 700px at 85% 20%, #2a1f44 0%, transparent 62%),
-        radial-gradient(900px 600px at 50% 90%, #183a36 0%, transparent 58%),
-        linear-gradient(180deg, var(--bg-a), var(--bg-b));
-      font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      transition: background .2s ease;
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
     }
-
-    /* The whole screen acts as a button / drop zone */
-    #stage{
+    /* Fullscreen click/drag area */
+    #stage {
       position: fixed; inset: 0;
       display: grid; place-items: center;
-      cursor: pointer;
-      user-select: none;
-      outline: none;
+      cursor: pointer; user-select: none; outline: none;
     }
-    /* Keyboard focus indication without boxes */
-    #stage:focus-visible .headline{
-      text-shadow: 0 0 0.5rem rgba(255,255,255,.35);
+    h1 {
+      margin: 0;
+      font-weight: 800;
+      font-size: clamp(24px, 6vw, 48px);
     }
-
-    /* Centered copy (no card, no borders) */
-    .center{
-      display:flex; flex-direction:column; align-items:center; gap:.6rem;
-      text-align:center; padding: 0 1.25rem;
-    }
-    .headline{
-      margin:0;
-      font-weight: 900;
-      letter-spacing: .2px;
-      font-size: clamp(32px, 7vw, 64px);
-      line-height: 1.06;
-      /* Gradient text for a modern feel */
-      background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    .subtitle{
-      margin:0;
-      color: var(--muted);
-      font-size: clamp(13px, 2.6vw, 16px);
-    }
-    .hint{ margin-top:.1rem; opacity:.85; font-size:.9rem; }
-
-    /* Dragging feedback: subtly intensify background & glow text */
-    body.drag .headline{ text-shadow: 0 0 1.2rem rgba(146,163,255,.55); }
-    body.drag{
-      background:
-        radial-gradient(1200px 800px at 10% 10%, #22365e 0%, transparent 60%),
-        radial-gradient(1000px 700px at 85% 20%, #3a2b61 0%, transparent 62%),
-        radial-gradient(900px 600px at 50% 90%, #20514b 0%, transparent 58%),
-        linear-gradient(180deg, var(--bg-a), var(--bg-b));
-    }
-
     /* Hidden native input */
-    #picker{ display:none; }
-
-    /* Iframe becomes the app surface after load */
-    #viewer{
+    #picker { display: none; }
+    /* Iframe that runs the uploaded HTML */
+    #viewer {
       position: fixed; inset: 0;
-      width:100%; height:100%; border:0;
-      display:none; background:#fff;
+      width: 100%; height: 100%;
+      border: 0; display: none; background: #fff;
     }
   </style>
 </head>
 <body>
-  <!-- Hidden native file input -->
+  <!-- Hidden file input -->
   <input id="picker" type="file" accept=".html,text/html" />
 
   <!-- Fullscreen interactive area (click / keyboard / drop anywhere) -->
-  <main id="stage" aria-label="Open HTML" tabindex="0">
-    <div class="center" aria-hidden="false">
-      <h1 class="headline">Open HTML</h1>
-      <p class="subtitle">Click anywhere or drag & drop an .html file</p>
-      <div class="hint">Your file runs locally in a sandboxed iframe.</div>
-    </div>
+  <main id="stage" tabindex="0" aria-label="Open HTML">
+    <h1>Open HTML</h1>
   </main>
 
   <!-- Sandboxed iframe that executes the uploaded HTML -->
@@ -128,15 +69,9 @@
     picker.addEventListener('change', () => loadIntoIframe(picker.files?.[0]));
 
     // Global drag & drop (anywhere on the page)
-    const prevent = (e) => { e.preventDefault(); e.stopPropagation(); };
-    ['dragenter','dragover','dragleave','drop'].forEach(type => {
-      document.addEventListener(type, prevent, { passive:false });
-    });
-    ['dragenter','dragover'].forEach(type => {
-      document.addEventListener(type, () => document.body.classList.add('drag'));
-    });
-    ['dragleave','drop'].forEach(type => {
-      document.addEventListener(type, () => document.body.classList.remove('drag'));
+    const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
+    ['dragenter','dragover','dragleave','drop'].forEach(t => {
+      document.addEventListener(t, stop, { passive: false });
     });
     document.addEventListener('drop', (e) => {
       const file = e.dataTransfer?.files?.[0];
@@ -161,14 +96,13 @@
       const blob = new Blob([buf], { type: 'text/html;charset=utf-8' });
       const url  = URL.createObjectURL(blob);
 
-      // Show the viewer; the stage stays underneath but is hidden by the iframe
       frame.src = url;
       frame.style.display = 'block';
 
       // Revoke object URL later to free memory
       frame.addEventListener('load', () => {
         setTimeout(() => URL.revokeObjectURL(url), 10000);
-      }, { once:true });
+      }, { once: true });
     }
   </script>
 </body>
